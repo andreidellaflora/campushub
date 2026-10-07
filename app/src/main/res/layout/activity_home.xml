@@ -25,13 +25,15 @@
             android:textSize="24sp"
             android:textStyle="bold" />
 
-        <TextView
+        <Button
+            android:id="@+id/btnPerfil"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="EVENTOS"
+            android:text="MEU PERFIL"
             android:textColor="#FFFFFF"
-            android:textSize="13sp"
-            android:textStyle="bold" />
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:backgroundTint="#6A4BBC" />
 
     </LinearLayout>
 
