@@ -8,7 +8,6 @@
     android:padding="32dp"
     android:background="#F7F5FC">
 
-
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -26,7 +25,6 @@
         android:textColor="#666666"
         android:layout_marginBottom="40dp" />
 
-
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -35,7 +33,6 @@
         android:textStyle="bold"
         android:textColor="#222222"
         android:layout_marginBottom="24dp" />
-
 
     <EditText
         android:id="@+id/edtEmail"
@@ -47,7 +44,6 @@
         android:backgroundTint="#6A4BBC"
         android:layout_marginBottom="16dp" />
 
-
     <EditText
         android:id="@+id/edtSenha"
         android:layout_width="match_parent"
@@ -56,8 +52,19 @@
         android:inputType="textPassword"
         android:padding="16dp"
         android:backgroundTint="#6A4BBC"
-        android:layout_marginBottom="24dp" />
+        android:layout_marginBottom="8dp" />
 
+    <TextView
+        android:id="@+id/txtEsqueciSenha"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Esqueci minha senha"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:textColor="#5E35B1"
+        android:layout_marginBottom="20dp"
+        android:clickable="true"
+        android:focusable="true" />
 
     <Button
         android:id="@+id/btnEntrar"
@@ -68,7 +75,6 @@
         android:textStyle="bold"
         android:textColor="#FFFFFF"
         android:backgroundTint="#6A4BBC" />
-
 
     <TextView
         android:id="@+id/txtCadastro"
