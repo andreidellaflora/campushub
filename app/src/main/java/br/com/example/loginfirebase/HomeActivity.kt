@@ -19,31 +19,48 @@ class HomeActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         setContentView(R.layout.activity_home)
 
         auth = FirebaseAuth.getInstance()
         db = FirebaseFirestore.getInstance()
 
         val btnPerfil = findViewById<Button>(R.id.btnPerfil)
-
-        btnPerfil.setOnClickListener {
-            val intent = Intent(this, PerfilActivity::class.java)
-            startActivity(intent)
-        }
-
+        val btnMeusEventos = findViewById<Button>(R.id.btnMeusEventos)
         val btnSair = findViewById<Button>(R.id.btnSair)
 
+        btnPerfil.setOnClickListener {
+            startActivity(
+                Intent(
+                    this,
+                    PerfilActivity::class.java
+                )
+            )
+        }
+
+        btnMeusEventos.setOnClickListener {
+            startActivity(
+                Intent(
+                    this,
+                    MeusEventosActivity::class.java
+                )
+            )
+        }
+
         btnSair.setOnClickListener {
+
             auth.signOut()
 
-            val intent = Intent(this, MainActivity::class.java)
+            val intent = Intent(
+                this,
+                MainActivity::class.java
+            )
 
             intent.flags =
                 Intent.FLAG_ACTIVITY_NEW_TASK or
                         Intent.FLAG_ACTIVITY_CLEAR_TASK
 
             startActivity(intent)
+
             finish()
         }
 
@@ -53,7 +70,9 @@ class HomeActivity : AppCompatActivity() {
     private fun carregarEventos() {
 
         val eventosContainer =
-            findViewById<LinearLayout>(R.id.eventosContainer)
+            findViewById<LinearLayout>(
+                R.id.eventosContainer
+            )
 
         db.collection("eventos")
             .get()
@@ -65,11 +84,15 @@ class HomeActivity : AppCompatActivity() {
 
                     val mensagem = TextView(this)
 
-                    mensagem.text = "Nenhum evento cadastrado."
-                    mensagem.textSize = 16f
-                    mensagem.setTextColor(Color.GRAY)
+                    mensagem.text =
+                        "Nenhum evento cadastrado."
 
-                    eventosContainer.addView(mensagem)
+                    mensagem.textSize = 16f
+                    mensagem.setTextColor(Color.DKGRAY)
+
+                    eventosContainer.addView(
+                        mensagem
+                    )
 
                     return@addOnSuccessListener
                 }
@@ -77,22 +100,40 @@ class HomeActivity : AppCompatActivity() {
                 for (documento in documentos) {
 
                     val titulo =
-                        documento.getString("titulo") ?: "Sem título"
+                        documento.getString("titulo")
+                            ?: "Evento"
 
                     val data =
-                        documento.getString("data") ?: "Sem data"
+                        documento.getString("data")
+                            ?: ""
 
                     val horario =
-                        documento.getString("horario") ?: "Sem horário"
+                        documento.getString("horario")
+                            ?: ""
 
                     val local =
-                        documento.getString("local") ?: "Sem local"
+                        documento.getString("local")
+                            ?: ""
 
-                    val card = LinearLayout(this)
+                    val eventoId =
+                        documento.id
 
-                    card.orientation = LinearLayout.VERTICAL
-                    card.setPadding(20, 20, 20, 20)
-                    card.setBackgroundColor(Color.WHITE)
+                    val card =
+                        LinearLayout(this)
+
+                    card.orientation =
+                        LinearLayout.VERTICAL
+
+                    card.setPadding(
+                        20,
+                        20,
+                        20,
+                        20
+                    )
+
+                    card.setBackgroundColor(
+                        Color.WHITE
+                    )
 
                     val parametros =
                         LinearLayout.LayoutParams(
@@ -100,41 +141,92 @@ class HomeActivity : AppCompatActivity() {
                             ViewGroup.LayoutParams.WRAP_CONTENT
                         )
 
-                    parametros.setMargins(0, 0, 0, 16)
-
-                    card.layoutParams = parametros
-
-                    val txtTitulo = TextView(this)
-
-                    txtTitulo.text = titulo
-                    txtTitulo.textSize = 19f
-                    txtTitulo.setTextColor(Color.rgb(94, 53, 177))
-                    txtTitulo.setTypeface(
-                        null,
-                        android.graphics.Typeface.BOLD
+                    parametros.setMargins(
+                        0,
+                        0,
+                        0,
+                        16
                     )
 
-                    val txtData = TextView(this)
+                    card.layoutParams =
+                        parametros
 
-                    txtData.text = "$data • $horario"
-                    txtData.textSize = 14f
-                    txtData.setTextColor(Color.DKGRAY)
+                    val txtTitulo =
+                        TextView(this)
 
-                    val txtLocal = TextView(this)
+                    txtTitulo.text =
+                        titulo
 
-                    txtLocal.text = local
-                    txtLocal.textSize = 14f
-                    txtLocal.setTextColor(Color.GRAY)
+                    txtTitulo.textSize =
+                        19f
 
-                    val btnDetalhes = Button(this)
+                    txtTitulo.setTextColor(
+                        Color.rgb(
+                            94,
+                            53,
+                            177
+                        )
+                    )
 
-                    btnDetalhes.text = "VER DETALHES"
-                    btnDetalhes.setTextColor(Color.WHITE)
+                    val txtData =
+                        TextView(this)
+
+                    txtData.text =
+                        "$data • $horario"
+
+                    txtData.textSize =
+                        14f
+
+                    txtData.setTextColor(
+                        Color.DKGRAY
+                    )
+
+                    val txtLocal =
+                        TextView(this)
+
+                    txtLocal.text =
+                        local
+
+                    txtLocal.textSize =
+                        14f
+
+                    txtLocal.setTextColor(
+                        Color.GRAY
+                    )
+
+                    val btnDetalhes =
+                        Button(this)
+
+                    btnDetalhes.text =
+                        "VER DETALHES"
+
+                    btnDetalhes.setTextColor(
+                        Color.WHITE
+                    )
+
                     btnDetalhes.setBackgroundColor(
-                        Color.rgb(106, 75, 188)
+                        Color.rgb(
+                            106,
+                            75,
+                            188
+                        )
                     )
 
-                    val eventoId = documento.id
+                    val margemBotao =
+                        LinearLayout.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.WRAP_CONTENT
+                        )
+
+                    margemBotao.setMargins(
+                        0,
+                        14,
+                        0,
+                        0
+                    )
+
+                    btnDetalhes.layoutParams =
+                        margemBotao
 
                     btnDetalhes.setOnClickListener {
 
@@ -149,15 +241,30 @@ class HomeActivity : AppCompatActivity() {
                             eventoId
                         )
 
-                        startActivity(intent)
+                        startActivity(
+                            intent
+                        )
                     }
 
-                    card.addView(txtTitulo)
-                    card.addView(txtData)
-                    card.addView(txtLocal)
-                    card.addView(btnDetalhes)
+                    card.addView(
+                        txtTitulo
+                    )
 
-                    eventosContainer.addView(card)
+                    card.addView(
+                        txtData
+                    )
+
+                    card.addView(
+                        txtLocal
+                    )
+
+                    card.addView(
+                        btnDetalhes
+                    )
+
+                    eventosContainer.addView(
+                        card
+                    )
                 }
             }
             .addOnFailureListener {

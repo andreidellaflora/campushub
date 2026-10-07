@@ -20,12 +20,14 @@ class PerfilActivity : AppCompatActivity() {
         auth = FirebaseAuth.getInstance()
         db = FirebaseFirestore.getInstance()
 
-        val edtNome = findViewById<EditText>(R.id.edtNomePerfil)
-        val edtEmail = findViewById<EditText>(R.id.edtEmailPerfil)
-        val btnSalvar = findViewById<Button>(R.id.btnSalvarPerfil)
-        val btnVoltar = findViewById<Button>(R.id.btnVoltarPerfil)
+        val edtNome = findViewById<EditText>(R.id.edtNome)
+        val edtEmail = findViewById<EditText>(R.id.edtEmail)
+        val edtCurso = findViewById<EditText>(R.id.edtCurso)
+        val edtMatricula = findViewById<EditText>(R.id.edtMatricula)
+        val edtTelefone = findViewById<EditText>(R.id.edtTelefone)
+        val btnSalvar = findViewById<Button>(R.id.btnSalvar)
+        val btnVoltar = findViewById<Button>(R.id.btnVoltar)
 
-        // Usuário atualmente logado
         val usuario = auth.currentUser
 
         if (usuario == null) {
@@ -34,68 +36,51 @@ class PerfilActivity : AppCompatActivity() {
         }
 
         val uid = usuario.uid
-        val email = usuario.email
 
-        // E-mail vem do Firebase Authentication
-        edtEmail.setText(email)
+        edtEmail.setText(usuario.email)
 
-        // Busca o nome no Firestore
         db.collection("usuarios")
             .document(uid)
             .get()
             .addOnSuccessListener { documento ->
-
                 if (documento.exists()) {
-                    val nome = documento.getString("nome")
-
-                    if (nome != null) {
-                        edtNome.setText(nome)
-                    }
+                    edtNome.setText(documento.getString("nome") ?: "")
+                    edtEmail.setText(documento.getString("email") ?: usuario.email)
+                    edtCurso.setText(documento.getString("curso") ?: "")
+                    edtMatricula.setText(documento.getString("matricula") ?: "")
+                    edtTelefone.setText(documento.getString("telefone") ?: "")
                 }
             }
 
-        // Salvar perfil
         btnSalvar.setOnClickListener {
 
-            val nome = edtNome.text.toString().trim()
-
-            if (nome.isEmpty()) {
-                Toast.makeText(
-                    this,
-                    "Digite seu nome",
-                    Toast.LENGTH_SHORT
-                ).show()
-
-                return@setOnClickListener
-            }
-
             val dadosUsuario = hashMapOf(
-                "nome" to nome,
-                "email" to (email ?: "")
+                "nome" to edtNome.text.toString().trim(),
+                "email" to edtEmail.text.toString().trim(),
+                "curso" to edtCurso.text.toString().trim(),
+                "matricula" to edtMatricula.text.toString().trim(),
+                "telefone" to edtTelefone.text.toString().trim()
             )
 
             db.collection("usuarios")
                 .document(uid)
                 .set(dadosUsuario)
                 .addOnSuccessListener {
-
                     Toast.makeText(
                         this,
                         "Perfil salvo com sucesso!",
                         Toast.LENGTH_SHORT
                     ).show()
                 }
-                .addOnFailureListener {
-
+                .addOnFailureListener { erro ->
                     Toast.makeText(
                         this,
-                        "Erro ao salvar perfil",
-                        Toast.LENGTH_SHORT
+                        "Erro ao salvar: ${erro.message}",
+                        Toast.LENGTH_LONG
                     ).show()
                 }
         }
 
-        // Voltar
         btnVoltar.setOnClickListener {
             finish()
         }

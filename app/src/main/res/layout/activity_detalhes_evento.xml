@@ -6,7 +6,6 @@
     android:orientation="vertical"
     android:background="#F7F5FC">
 
-    <!-- Cabeçalho -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="70dp"
@@ -35,7 +34,6 @@
 
     </LinearLayout>
 
-    <!-- Conteúdo -->
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -130,13 +128,20 @@
                 android:layout_marginBottom="30dp" />
 
             <Button
-                android:id="@+id/btnVoltar"
+                android:id="@+id/btnInscrever"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="VOLTAR"
+                android:text="INSCREVER-SE"
                 android:textColor="#FFFFFF"
                 android:textStyle="bold"
                 android:backgroundTint="#6A4BBC" />
+
+            <Button
+                android:id="@+id/btnVoltar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="VOLTAR" />
 
         </LinearLayout>
 
