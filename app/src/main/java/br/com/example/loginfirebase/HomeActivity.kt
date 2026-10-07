@@ -19,11 +19,11 @@ class HomeActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         setContentView(R.layout.activity_home)
 
         auth = FirebaseAuth.getInstance()
         db = FirebaseFirestore.getInstance()
-
 
         val btnPerfil = findViewById<Button>(R.id.btnPerfil)
 
@@ -31,7 +31,6 @@ class HomeActivity : AppCompatActivity() {
             val intent = Intent(this, PerfilActivity::class.java)
             startActivity(intent)
         }
-
 
         val btnSair = findViewById<Button>(R.id.btnSair)
 
@@ -47,7 +46,6 @@ class HomeActivity : AppCompatActivity() {
             startActivity(intent)
             finish()
         }
-
 
         carregarEventos()
     }
@@ -79,20 +77,16 @@ class HomeActivity : AppCompatActivity() {
                 for (documento in documentos) {
 
                     val titulo =
-                        documento.getString("titulo") ?: "Evento"
+                        documento.getString("titulo") ?: "Sem título"
 
                     val data =
-                        documento.getString("data") ?: ""
+                        documento.getString("data") ?: "Sem data"
 
                     val horario =
-                        documento.getString("horario") ?: ""
+                        documento.getString("horario") ?: "Sem horário"
 
                     val local =
-                        documento.getString("local") ?: ""
-
-                    val descricao =
-                        documento.getString("descricao") ?: ""
-
+                        documento.getString("local") ?: "Sem local"
 
                     val card = LinearLayout(this)
 
@@ -110,44 +104,27 @@ class HomeActivity : AppCompatActivity() {
 
                     card.layoutParams = parametros
 
-
                     val txtTitulo = TextView(this)
 
                     txtTitulo.text = titulo
                     txtTitulo.textSize = 19f
                     txtTitulo.setTextColor(Color.rgb(94, 53, 177))
-                    txtTitulo.setTypeface(null, android.graphics.Typeface.BOLD)
-
-                    card.addView(txtTitulo)
-
+                    txtTitulo.setTypeface(
+                        null,
+                        android.graphics.Typeface.BOLD
+                    )
 
                     val txtData = TextView(this)
 
                     txtData.text = "$data • $horario"
                     txtData.textSize = 14f
-                    txtData.setTextColor(Color.rgb(85, 85, 85))
-
-                    val margemData =
-                        LinearLayout.LayoutParams(
-                            ViewGroup.LayoutParams.WRAP_CONTENT,
-                            ViewGroup.LayoutParams.WRAP_CONTENT
-                        )
-
-                    margemData.setMargins(0, 8, 0, 0)
-
-                    txtData.layoutParams = margemData
-
-                    card.addView(txtData)
-
+                    txtData.setTextColor(Color.DKGRAY)
 
                     val txtLocal = TextView(this)
 
                     txtLocal.text = local
                     txtLocal.textSize = 14f
-                    txtLocal.setTextColor(Color.rgb(119, 119, 119))
-
-                    card.addView(txtLocal)
-
+                    txtLocal.setTextColor(Color.GRAY)
 
                     val btnDetalhes = Button(this)
 
@@ -157,27 +134,28 @@ class HomeActivity : AppCompatActivity() {
                         Color.rgb(106, 75, 188)
                     )
 
-                    val margemBotao =
-                        LinearLayout.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT,
-                            ViewGroup.LayoutParams.WRAP_CONTENT
-                        )
-
-                    margemBotao.setMargins(0, 14, 0, 0)
-
-                    btnDetalhes.layoutParams = margemBotao
+                    val eventoId = documento.id
 
                     btnDetalhes.setOnClickListener {
 
-                        Toast.makeText(
-                            this,
-                            descricao,
-                            Toast.LENGTH_LONG
-                        ).show()
+                        val intent =
+                            Intent(
+                                this,
+                                DetalhesEventoActivity::class.java
+                            )
+
+                        intent.putExtra(
+                            "eventoId",
+                            eventoId
+                        )
+
+                        startActivity(intent)
                     }
 
+                    card.addView(txtTitulo)
+                    card.addView(txtData)
+                    card.addView(txtLocal)
                     card.addView(btnDetalhes)
-
 
                     eventosContainer.addView(card)
                 }
@@ -186,8 +164,8 @@ class HomeActivity : AppCompatActivity() {
 
                 Toast.makeText(
                     this,
-                    "Erro ao carregar eventos.",
-                    Toast.LENGTH_LONG
+                    "Erro ao carregar eventos",
+                    Toast.LENGTH_SHORT
                 ).show()
             }
     }
