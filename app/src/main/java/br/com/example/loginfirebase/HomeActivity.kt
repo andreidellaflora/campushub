@@ -26,6 +26,7 @@ class HomeActivity : AppCompatActivity() {
 
         val btnPerfil = findViewById<Button>(R.id.btnPerfil)
         val btnMeusEventos = findViewById<Button>(R.id.btnMeusEventos)
+        val btnMeusFavoritos = findViewById<Button>(R.id.btnMeusFavoritos)
         val btnSair = findViewById<Button>(R.id.btnSair)
 
         btnPerfil.setOnClickListener {
@@ -42,6 +43,15 @@ class HomeActivity : AppCompatActivity() {
                 Intent(
                     this,
                     MeusEventosActivity::class.java
+                )
+            )
+        }
+
+        btnMeusFavoritos.setOnClickListener {
+            startActivity(
+                Intent(
+                    this,
+                    MeusFavoritosActivity::class.java
                 )
             )
         }
@@ -87,8 +97,12 @@ class HomeActivity : AppCompatActivity() {
                     mensagem.text =
                         "Nenhum evento cadastrado."
 
-                    mensagem.textSize = 16f
-                    mensagem.setTextColor(Color.DKGRAY)
+                    mensagem.textSize =
+                        16f
+
+                    mensagem.setTextColor(
+                        Color.DKGRAY
+                    )
 
                     eventosContainer.addView(
                         mensagem

@@ -125,7 +125,7 @@
                 android:textColor="#333333"
                 android:textSize="17sp"
                 android:layout_marginTop="4dp"
-                android:layout_marginBottom="30dp" />
+                android:layout_marginBottom="24dp" />
 
             <Button
                 android:id="@+id/btnInscrever"
@@ -135,6 +135,16 @@
                 android:textColor="#FFFFFF"
                 android:textStyle="bold"
                 android:backgroundTint="#6A4BBC" />
+
+            <Button
+                android:id="@+id/btnFavorito"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="☆ FAVORITAR"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:backgroundTint="#8E6CC9" />
 
             <Button
                 android:id="@+id/btnVoltar"

@@ -14,8 +14,8 @@ class DetalhesEventoActivity : AppCompatActivity() {
     private lateinit var db: FirebaseFirestore
     private lateinit var auth: FirebaseAuth
 
-    private var eventoId: String? = null
-    private var inscrito = false
+    private var processandoFavorito = false
+    private var processandoInscricao = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -30,6 +30,7 @@ class DetalhesEventoActivity : AppCompatActivity() {
         val txtLocal = findViewById<TextView>(R.id.txtLocalEvento)
         val txtDescricao = findViewById<TextView>(R.id.txtDescricaoEvento)
         val btnInscrever = findViewById<Button>(R.id.btnInscrever)
+        val btnFavorito = findViewById<Button>(R.id.btnFavorito)
         val btnVoltar = findViewById<Button>(R.id.btnVoltar)
 
         val usuario = auth.currentUser
@@ -39,128 +40,172 @@ class DetalhesEventoActivity : AppCompatActivity() {
             return
         }
 
-        eventoId = intent.getStringExtra("eventoId")
+        val eventoId = intent.getStringExtra("eventoId")
 
-        if (eventoId == null) {
-            Toast.makeText(
-                this,
-                "Evento não encontrado",
-                Toast.LENGTH_SHORT
-            ).show()
+        if (eventoId.isNullOrBlank()) {
+            Toast.makeText(this, "Evento não encontrado", Toast.LENGTH_SHORT).show()
             finish()
             return
         }
 
-        val idEvento = eventoId!!
         val uid = usuario.uid
-        val inscricaoId = "${uid}_${idEvento}"
+        val inscricaoId = "${uid}_${eventoId}"
+        val favoritoId = "${uid}_${eventoId}"
+
+        btnInscrever.isEnabled = false
+        btnFavorito.isEnabled = false
 
         db.collection("eventos")
-            .document(idEvento)
+            .document(eventoId)
             .get()
             .addOnSuccessListener { documento ->
-
                 if (documento.exists()) {
-                    txtTitulo.text =
-                        documento.getString("titulo") ?: "Sem título"
-
-                    txtData.text =
-                        documento.getString("data") ?: "Sem data"
-
-                    txtHorario.text =
-                        documento.getString("horario") ?: "Sem horário"
-
-                    txtLocal.text =
-                        documento.getString("local") ?: "Sem local"
-
-                    txtDescricao.text =
-                        documento.getString("descricao") ?: "Sem descrição"
+                    txtTitulo.text = documento.getString("titulo") ?: "Sem título"
+                    txtData.text = documento.getString("data") ?: "Sem data"
+                    txtHorario.text = documento.getString("horario") ?: "Sem horário"
+                    txtLocal.text = documento.getString("local") ?: "Sem local"
+                    txtDescricao.text = documento.getString("descricao") ?: "Sem descrição"
                 } else {
-                    Toast.makeText(
-                        this,
-                        "Evento não encontrado no Firestore",
-                        Toast.LENGTH_SHORT
-                    ).show()
-
+                    Toast.makeText(this, "Evento não encontrado", Toast.LENGTH_SHORT).show()
                     finish()
                 }
             }
             .addOnFailureListener {
-                Toast.makeText(
-                    this,
-                    "Erro ao carregar evento",
-                    Toast.LENGTH_SHORT
-                ).show()
+                Toast.makeText(this, "Erro ao carregar evento", Toast.LENGTH_SHORT).show()
             }
 
         db.collection("inscricoes")
             .document(inscricaoId)
             .get()
             .addOnSuccessListener { documento ->
-
-                if (documento.exists()) {
-                    inscrito = true
-                    btnInscrever.text = "CANCELAR INSCRIÇÃO"
+                btnInscrever.text = if (documento.exists()) {
+                    "CANCELAR INSCRIÇÃO"
                 } else {
-                    inscrito = false
-                    btnInscrever.text = "INSCREVER-SE"
+                    "INSCREVER-SE"
                 }
+                btnInscrever.isEnabled = true
+            }
+            .addOnFailureListener {
+                btnInscrever.isEnabled = true
+                Toast.makeText(this, "Erro ao verificar inscrição", Toast.LENGTH_SHORT).show()
+            }
+
+        db.collection("favoritos")
+            .document(favoritoId)
+            .get()
+            .addOnSuccessListener { documento ->
+                btnFavorito.text = if (documento.exists()) {
+                    "★ DESFAVORITAR"
+                } else {
+                    "☆ FAVORITAR"
+                }
+                btnFavorito.isEnabled = true
+            }
+            .addOnFailureListener {
+                btnFavorito.isEnabled = true
+                Toast.makeText(this, "Erro ao verificar favorito", Toast.LENGTH_SHORT).show()
             }
 
         btnInscrever.setOnClickListener {
+            if (processandoInscricao) return@setOnClickListener
 
-            if (inscrito) {
+            processandoInscricao = true
+            btnInscrever.isEnabled = false
 
-                db.collection("inscricoes")
-                    .document(inscricaoId)
-                    .delete()
-                    .addOnSuccessListener {
-                        inscrito = false
-                        btnInscrever.text = "INSCREVER-SE"
+            val referencia = db.collection("inscricoes").document(inscricaoId)
 
-                        Toast.makeText(
-                            this,
-                            "Inscrição cancelada com sucesso!",
-                            Toast.LENGTH_SHORT
-                        ).show()
+            referencia.get()
+                .addOnSuccessListener { documento ->
+                    if (documento.exists()) {
+                        referencia.delete()
+                            .addOnSuccessListener {
+                                btnInscrever.text = "INSCREVER-SE"
+                                Toast.makeText(this, "Inscrição cancelada!", Toast.LENGTH_SHORT).show()
+                            }
+                            .addOnFailureListener {
+                                Toast.makeText(this, "Erro ao cancelar inscrição", Toast.LENGTH_SHORT).show()
+                            }
+                            .addOnCompleteListener {
+                                processandoInscricao = false
+                                btnInscrever.isEnabled = true
+                            }
+                    } else {
+                        val dados = hashMapOf(
+                            "usuarioId" to uid,
+                            "eventoId" to eventoId,
+                            "dataInscricao" to FieldValue.serverTimestamp()
+                        )
+
+                        referencia.set(dados)
+                            .addOnSuccessListener {
+                                btnInscrever.text = "CANCELAR INSCRIÇÃO"
+                                Toast.makeText(this, "Inscrição realizada!", Toast.LENGTH_SHORT).show()
+                            }
+                            .addOnFailureListener {
+                                Toast.makeText(this, "Erro ao realizar inscrição", Toast.LENGTH_SHORT).show()
+                            }
+                            .addOnCompleteListener {
+                                processandoInscricao = false
+                                btnInscrever.isEnabled = true
+                            }
                     }
-                    .addOnFailureListener { erro ->
-                        Toast.makeText(
-                            this,
-                            "Erro ao cancelar: ${erro.message}",
-                            Toast.LENGTH_LONG
-                        ).show()
+                }
+                .addOnFailureListener {
+                    processandoInscricao = false
+                    btnInscrever.isEnabled = true
+                    Toast.makeText(this, "Erro ao verificar inscrição", Toast.LENGTH_SHORT).show()
+                }
+        }
+
+        btnFavorito.setOnClickListener {
+            if (processandoFavorito) return@setOnClickListener
+
+            processandoFavorito = true
+            btnFavorito.isEnabled = false
+
+            val referencia = db.collection("favoritos").document(favoritoId)
+
+            referencia.get()
+                .addOnSuccessListener { documento ->
+                    if (documento.exists()) {
+                        referencia.delete()
+                            .addOnSuccessListener {
+                                btnFavorito.text = "☆ FAVORITAR"
+                                Toast.makeText(this, "Evento removido dos favoritos!", Toast.LENGTH_SHORT).show()
+                            }
+                            .addOnFailureListener {
+                                Toast.makeText(this, "Erro ao desfavoritar", Toast.LENGTH_SHORT).show()
+                            }
+                            .addOnCompleteListener {
+                                processandoFavorito = false
+                                btnFavorito.isEnabled = true
+                            }
+                    } else {
+                        val dados = hashMapOf(
+                            "usuarioId" to uid,
+                            "eventoId" to eventoId,
+                            "dataFavorito" to FieldValue.serverTimestamp()
+                        )
+
+                        referencia.set(dados)
+                            .addOnSuccessListener {
+                                btnFavorito.text = "★ DESFAVORITAR"
+                                Toast.makeText(this, "Evento adicionado aos favoritos!", Toast.LENGTH_SHORT).show()
+                            }
+                            .addOnFailureListener {
+                                Toast.makeText(this, "Erro ao favoritar", Toast.LENGTH_SHORT).show()
+                            }
+                            .addOnCompleteListener {
+                                processandoFavorito = false
+                                btnFavorito.isEnabled = true
+                            }
                     }
-
-            } else {
-
-                val dadosInscricao = hashMapOf(
-                    "usuarioId" to uid,
-                    "eventoId" to idEvento,
-                    "dataInscricao" to FieldValue.serverTimestamp()
-                )
-
-                db.collection("inscricoes")
-                    .document(inscricaoId)
-                    .set(dadosInscricao)
-                    .addOnSuccessListener {
-                        inscrito = true
-                        btnInscrever.text = "CANCELAR INSCRIÇÃO"
-
-                        Toast.makeText(
-                            this,
-                            "Inscrição realizada com sucesso!",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
-                    .addOnFailureListener { erro ->
-                        Toast.makeText(
-                            this,
-                            "Erro ao realizar inscrição: ${erro.message}",
-                            Toast.LENGTH_LONG
-                        ).show()
-                    }
-            }
+                }
+                .addOnFailureListener {
+                    processandoFavorito = false
+                    btnFavorito.isEnabled = true
+                    Toast.makeText(this, "Erro ao verificar favorito", Toast.LENGTH_SHORT).show()
+                }
         }
 
         btnVoltar.setOnClickListener {
