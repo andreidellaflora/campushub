@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -31,13 +30,13 @@
             android:textColor="#FFFFFF"
             android:textSize="12sp"
             android:textStyle="bold" />
-
     </LinearLayout>
 
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1">
+        android:layout_weight="1"
+        android:fillViewport="true">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -67,7 +66,7 @@
                 android:id="@+id/txtDataEvento"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="20/10/2026"
+                android:text="Data do evento"
                 android:textColor="#222222"
                 android:textSize="18sp"
                 android:layout_marginTop="4dp"
@@ -85,7 +84,7 @@
                 android:id="@+id/txtHorarioEvento"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="14:00"
+                android:text="Horário do evento"
                 android:textColor="#222222"
                 android:textSize="18sp"
                 android:layout_marginTop="4dp"
@@ -103,7 +102,7 @@
                 android:id="@+id/txtLocalEvento"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Auditório Principal"
+                android:text="Local do evento"
                 android:textColor="#222222"
                 android:textSize="18sp"
                 android:layout_marginTop="4dp"
@@ -146,15 +145,52 @@
                 android:textStyle="bold"
                 android:backgroundTint="#8E6CC9" />
 
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="30dp"
+                android:layout_marginBottom="14dp"
+                android:text="Comentários"
+                android:textColor="#222222"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+
+            <EditText
+                android:id="@+id/edtComentario"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Escreva seu comentário..."
+                android:gravity="top|start"
+                android:inputType="textCapSentences|textMultiLine"
+                android:minHeight="100dp"
+                android:maxLength="1000"
+                android:padding="12dp"
+                android:backgroundTint="#6A4BBC" />
+
+            <Button
+                android:id="@+id/btnPublicarComentario"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="PUBLICAR COMENTÁRIO"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:backgroundTint="#6A4BBC" />
+
+            <LinearLayout
+                android:id="@+id/comentariosContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginTop="20dp" />
+
             <Button
                 android:id="@+id/btnVoltar"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
+                android:layout_marginTop="20dp"
                 android:text="VOLTAR" />
 
         </LinearLayout>
-
     </ScrollView>
-
 </LinearLayout>
