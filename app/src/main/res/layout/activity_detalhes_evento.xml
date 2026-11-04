@@ -149,6 +149,63 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="30dp"
+                android:text="Avaliação do evento"
+                android:textColor="#222222"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/txtMediaAvaliacoes"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Média: carregando..."
+                android:textColor="#5E35B1"
+                android:textSize="17sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="Sua nota"
+                android:textColor="#333333"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <RatingBar
+                android:id="@+id/ratingBarAvaliacao"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:numStars="5"
+                android:rating="0"
+                android:stepSize="1"
+                android:isIndicator="false" />
+
+            <TextView
+                android:id="@+id/txtSituacaoAvaliacao"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Verificando disponibilidade..."
+                android:textColor="#666666"
+                android:textSize="14sp" />
+
+            <Button
+                android:id="@+id/btnSalvarAvaliacao"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="ENVIAR AVALIAÇÃO"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:backgroundTint="#6A4BBC"
+                android:enabled="false" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="30dp"
                 android:layout_marginBottom="14dp"
                 android:text="Comentários"
                 android:textColor="#222222"

@@ -9,6 +9,7 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
+import android.widget.RatingBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -27,12 +28,19 @@ class DetalhesEventoActivity : AppCompatActivity() {
     private lateinit var containerComentarios: LinearLayout
     private lateinit var edtComentario: EditText
     private lateinit var btnPublicarComentario: Button
+    private lateinit var ratingBar: RatingBar
+    private lateinit var btnSalvarAvaliacao: Button
+    private lateinit var txtMediaAvaliacoes: TextView
+    private lateinit var txtSituacaoAvaliacao: TextView
 
     private var eventoId = ""
     private var nomeAutor = "Usuário"
     private var processandoFavorito = false
     private var processandoInscricao = false
     private var publicandoComentario = false
+    private var salvandoAvaliacao = false
+    private var eventoEncerrado = false
+    private var usuarioInscrito = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -55,6 +63,11 @@ class DetalhesEventoActivity : AppCompatActivity() {
         btnPublicarComentario = findViewById(R.id.btnPublicarComentario)
         containerComentarios = findViewById(R.id.comentariosContainer)
 
+        ratingBar = findViewById(R.id.ratingBarAvaliacao)
+        btnSalvarAvaliacao = findViewById(R.id.btnSalvarAvaliacao)
+        txtMediaAvaliacoes = findViewById(R.id.txtMediaAvaliacoes)
+        txtSituacaoAvaliacao = findViewById(R.id.txtSituacaoAvaliacao)
+
         val usuario = auth.currentUser
 
         if (usuario == null) {
@@ -73,6 +86,7 @@ class DetalhesEventoActivity : AppCompatActivity() {
         val uid = usuario.uid
         val inscricaoId = "${uid}_${eventoId}"
         val favoritoId = "${uid}_${eventoId}"
+        val avaliacaoId = "${uid}_${eventoId}"
 
         nomeAutor = usuario.displayName
             ?.trim()
@@ -100,25 +114,26 @@ class DetalhesEventoActivity : AppCompatActivity() {
 
         btnInscrever.isEnabled = false
         btnFavorito.isEnabled = false
+        btnSalvarAvaliacao.isEnabled = false
 
         db.collection("inscricoes")
             .document(inscricaoId)
             .get()
             .addOnSuccessListener { documento ->
-                btnInscrever.text = if (documento.exists()) {
+                usuarioInscrito = documento.exists()
+
+                btnInscrever.text = if (usuarioInscrito) {
                     "CANCELAR INSCRIÇÃO"
                 } else {
                     "INSCREVER-SE"
                 }
+
                 btnInscrever.isEnabled = true
+                atualizarPermissaoAvaliacao(uid, avaliacaoId)
             }
             .addOnFailureListener {
                 btnInscrever.isEnabled = true
-                Toast.makeText(
-                    this,
-                    "Erro ao verificar inscrição",
-                    Toast.LENGTH_SHORT
-                ).show()
+                Toast.makeText(this, "Erro ao verificar inscrição", Toast.LENGTH_SHORT).show()
             }
 
         db.collection("favoritos")
@@ -134,12 +149,10 @@ class DetalhesEventoActivity : AppCompatActivity() {
             }
             .addOnFailureListener {
                 btnFavorito.isEnabled = true
-                Toast.makeText(
-                    this,
-                    "Erro ao verificar favorito",
-                    Toast.LENGTH_SHORT
-                ).show()
+                Toast.makeText(this, "Erro ao verificar favorito", Toast.LENGTH_SHORT).show()
             }
+
+        carregarMediaAvaliacoes()
 
         btnInscrever.setOnClickListener {
             if (processandoInscricao) return@setOnClickListener
@@ -147,27 +160,20 @@ class DetalhesEventoActivity : AppCompatActivity() {
             processandoInscricao = true
             btnInscrever.isEnabled = false
 
-            val referencia = db.collection("inscricoes")
-                .document(inscricaoId)
+            val referencia = db.collection("inscricoes").document(inscricaoId)
 
             referencia.get()
                 .addOnSuccessListener { documento ->
                     if (documento.exists()) {
                         referencia.delete()
                             .addOnSuccessListener {
+                                usuarioInscrito = false
                                 btnInscrever.text = "INSCREVER-SE"
-                                Toast.makeText(
-                                    this,
-                                    "Inscrição cancelada!",
-                                    Toast.LENGTH_SHORT
-                                ).show()
+                                atualizarPermissaoAvaliacao(uid, avaliacaoId)
+                                Toast.makeText(this, "Inscrição cancelada!", Toast.LENGTH_SHORT).show()
                             }
                             .addOnFailureListener {
-                                Toast.makeText(
-                                    this,
-                                    "Erro ao cancelar inscrição",
-                                    Toast.LENGTH_SHORT
-                                ).show()
+                                Toast.makeText(this, "Erro ao cancelar inscrição", Toast.LENGTH_SHORT).show()
                             }
                             .addOnCompleteListener {
                                 processandoInscricao = false
@@ -182,19 +188,13 @@ class DetalhesEventoActivity : AppCompatActivity() {
 
                         referencia.set(dados)
                             .addOnSuccessListener {
+                                usuarioInscrito = true
                                 btnInscrever.text = "CANCELAR INSCRIÇÃO"
-                                Toast.makeText(
-                                    this,
-                                    "Inscrição realizada!",
-                                    Toast.LENGTH_SHORT
-                                ).show()
+                                atualizarPermissaoAvaliacao(uid, avaliacaoId)
+                                Toast.makeText(this, "Inscrição realizada!", Toast.LENGTH_SHORT).show()
                             }
                             .addOnFailureListener {
-                                Toast.makeText(
-                                    this,
-                                    "Erro ao realizar inscrição",
-                                    Toast.LENGTH_SHORT
-                                ).show()
+                                Toast.makeText(this, "Erro ao realizar inscrição", Toast.LENGTH_SHORT).show()
                             }
                             .addOnCompleteListener {
                                 processandoInscricao = false
@@ -205,11 +205,7 @@ class DetalhesEventoActivity : AppCompatActivity() {
                 .addOnFailureListener {
                     processandoInscricao = false
                     btnInscrever.isEnabled = true
-                    Toast.makeText(
-                        this,
-                        "Erro ao verificar inscrição",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    Toast.makeText(this, "Erro ao verificar inscrição", Toast.LENGTH_SHORT).show()
                 }
         }
 
@@ -219,8 +215,7 @@ class DetalhesEventoActivity : AppCompatActivity() {
             processandoFavorito = true
             btnFavorito.isEnabled = false
 
-            val referencia = db.collection("favoritos")
-                .document(favoritoId)
+            val referencia = db.collection("favoritos").document(favoritoId)
 
             referencia.get()
                 .addOnSuccessListener { documento ->
@@ -228,18 +223,10 @@ class DetalhesEventoActivity : AppCompatActivity() {
                         referencia.delete()
                             .addOnSuccessListener {
                                 btnFavorito.text = "☆ FAVORITAR"
-                                Toast.makeText(
-                                    this,
-                                    "Evento removido dos favoritos!",
-                                    Toast.LENGTH_SHORT
-                                ).show()
+                                Toast.makeText(this, "Evento removido dos favoritos!", Toast.LENGTH_SHORT).show()
                             }
                             .addOnFailureListener {
-                                Toast.makeText(
-                                    this,
-                                    "Erro ao desfavoritar",
-                                    Toast.LENGTH_SHORT
-                                ).show()
+                                Toast.makeText(this, "Erro ao desfavoritar", Toast.LENGTH_SHORT).show()
                             }
                             .addOnCompleteListener {
                                 processandoFavorito = false
@@ -255,18 +242,10 @@ class DetalhesEventoActivity : AppCompatActivity() {
                         referencia.set(dados)
                             .addOnSuccessListener {
                                 btnFavorito.text = "★ DESFAVORITAR"
-                                Toast.makeText(
-                                    this,
-                                    "Evento adicionado aos favoritos!",
-                                    Toast.LENGTH_SHORT
-                                ).show()
+                                Toast.makeText(this, "Evento adicionado aos favoritos!", Toast.LENGTH_SHORT).show()
                             }
                             .addOnFailureListener {
-                                Toast.makeText(
-                                    this,
-                                    "Erro ao favoritar",
-                                    Toast.LENGTH_SHORT
-                                ).show()
+                                Toast.makeText(this, "Erro ao favoritar", Toast.LENGTH_SHORT).show()
                             }
                             .addOnCompleteListener {
                                 processandoFavorito = false
@@ -277,16 +256,16 @@ class DetalhesEventoActivity : AppCompatActivity() {
                 .addOnFailureListener {
                     processandoFavorito = false
                     btnFavorito.isEnabled = true
-                    Toast.makeText(
-                        this,
-                        "Erro ao verificar favorito",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    Toast.makeText(this, "Erro ao verificar favorito", Toast.LENGTH_SHORT).show()
                 }
         }
 
         btnPublicarComentario.setOnClickListener {
             publicarComentario(uid)
+        }
+
+        btnSalvarAvaliacao.setOnClickListener {
+            salvarAvaliacao(uid, avaliacaoId)
         }
 
         btnVoltar.setOnClickListener {
@@ -309,25 +288,148 @@ class DetalhesEventoActivity : AppCompatActivity() {
             .addOnSuccessListener { documento ->
                 if (documento.exists()) {
                     txtTitulo.text = documento.getString("titulo") ?: "Sem título"
-                    txtData.text = documento.getString("data") ?: "Sem data"
-                    txtHorario.text = documento.getString("horario") ?: "Sem horário"
+
+                    val data = documento.getString("data") ?: ""
+                    val horario = documento.getString("horario") ?: ""
+
+                    txtData.text = data.ifBlank { "Sem data" }
+                    txtHorario.text = horario.ifBlank { "Sem horário" }
                     txtLocal.text = documento.getString("local") ?: "Sem local"
                     txtDescricao.text = documento.getString("descricao") ?: "Sem descrição"
+
+                    eventoEncerrado = verificarEventoEncerrado(data, horario)
+
+                    val usuario = auth.currentUser
+                    if (usuario != null) {
+                        atualizarPermissaoAvaliacao(
+                            usuario.uid,
+                            "${usuario.uid}_${eventoId}"
+                        )
+                    }
                 } else {
-                    Toast.makeText(
-                        this,
-                        "Evento não encontrado",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    Toast.makeText(this, "Evento não encontrado", Toast.LENGTH_SHORT).show()
                     finish()
                 }
             }
             .addOnFailureListener {
-                Toast.makeText(
-                    this,
-                    "Erro ao carregar evento",
-                    Toast.LENGTH_SHORT
-                ).show()
+                Toast.makeText(this, "Erro ao carregar evento", Toast.LENGTH_SHORT).show()
+            }
+    }
+
+    private fun verificarEventoEncerrado(data: String, horario: String): Boolean {
+        return try {
+            val formato = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale("pt", "BR"))
+            formato.isLenient = false
+            val dataEvento = formato.parse("$data $horario") ?: return false
+            dataEvento.before(Date())
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    private fun atualizarPermissaoAvaliacao(uid: String, avaliacaoId: String) {
+        if (!::btnSalvarAvaliacao.isInitialized) return
+
+        if (!eventoEncerrado) {
+            txtSituacaoAvaliacao.text = "A avaliação estará disponível após o encerramento do evento."
+            btnSalvarAvaliacao.isEnabled = false
+            ratingBar.isEnabled = false
+            return
+        }
+
+        if (!usuarioInscrito) {
+            txtSituacaoAvaliacao.text = "Somente alunos inscritos podem avaliar este evento."
+            btnSalvarAvaliacao.isEnabled = false
+            ratingBar.isEnabled = false
+            return
+        }
+
+        ratingBar.isEnabled = true
+        btnSalvarAvaliacao.isEnabled = true
+        txtSituacaoAvaliacao.text = "Você pode avaliar este evento."
+
+        db.collection("avaliacoes")
+            .document(avaliacaoId)
+            .get()
+            .addOnSuccessListener { documento ->
+                if (documento.exists()) {
+                    val nota = documento.getLong("nota")?.toFloat() ?: 0f
+                    ratingBar.rating = nota
+                    btnSalvarAvaliacao.text = "ALTERAR AVALIAÇÃO"
+                } else {
+                    ratingBar.rating = 0f
+                    btnSalvarAvaliacao.text = "ENVIAR AVALIAÇÃO"
+                }
+            }
+    }
+
+    private fun salvarAvaliacao(uid: String, avaliacaoId: String) {
+        if (salvandoAvaliacao) return
+
+        if (!eventoEncerrado || !usuarioInscrito) {
+            Toast.makeText(this, "Você não pode avaliar este evento.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val nota = ratingBar.rating.toInt()
+
+        if (nota !in 1..5) {
+            Toast.makeText(this, "Selecione uma nota de 1 a 5 estrelas.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        salvandoAvaliacao = true
+        btnSalvarAvaliacao.isEnabled = false
+
+        val dados = hashMapOf(
+            "usuarioId" to uid,
+            "eventoId" to eventoId,
+            "nota" to nota,
+            "dataAvaliacao" to FieldValue.serverTimestamp()
+        )
+
+        db.collection("avaliacoes")
+            .document(avaliacaoId)
+            .set(dados)
+            .addOnSuccessListener {
+                Toast.makeText(this, "Avaliação salva!", Toast.LENGTH_SHORT).show()
+                btnSalvarAvaliacao.text = "ALTERAR AVALIAÇÃO"
+                carregarMediaAvaliacoes()
+            }
+            .addOnFailureListener { erro ->
+                Toast.makeText(this, "Erro ao avaliar: ${erro.message}", Toast.LENGTH_LONG).show()
+            }
+            .addOnCompleteListener {
+                salvandoAvaliacao = false
+                btnSalvarAvaliacao.isEnabled = eventoEncerrado && usuarioInscrito
+            }
+    }
+
+    private fun carregarMediaAvaliacoes() {
+        db.collection("avaliacoes")
+            .whereEqualTo("eventoId", eventoId)
+            .get()
+            .addOnSuccessListener { documentos ->
+                if (documentos.isEmpty) {
+                    txtMediaAvaliacoes.text = "Média: ainda sem avaliações"
+                    return@addOnSuccessListener
+                }
+
+                val notas = documentos.documents.mapNotNull {
+                    it.getLong("nota")?.toDouble()
+                }
+
+                if (notas.isEmpty()) {
+                    txtMediaAvaliacoes.text = "Média: ainda sem avaliações"
+                    return@addOnSuccessListener
+                }
+
+                val media = notas.average()
+                txtMediaAvaliacoes.text =
+                    "Média: ${String.format(Locale("pt", "BR"), "%.1f", media)} / 5 (${notas.size} avaliações)"
+            }
+            .addOnFailureListener {
+                txtMediaAvaliacoes.text = "Não foi possível carregar a média."
             }
     }
 
@@ -356,19 +458,11 @@ class DetalhesEventoActivity : AppCompatActivity() {
             .add(dados)
             .addOnSuccessListener {
                 edtComentario.text.clear()
-                Toast.makeText(
-                    this,
-                    "Comentário publicado!",
-                    Toast.LENGTH_SHORT
-                ).show()
+                Toast.makeText(this, "Comentário publicado!", Toast.LENGTH_SHORT).show()
                 carregarComentarios(uid)
             }
             .addOnFailureListener { erro ->
-                Toast.makeText(
-                    this,
-                    "Erro ao publicar: ${erro.message}",
-                    Toast.LENGTH_LONG
-                ).show()
+                Toast.makeText(this, "Erro ao publicar: ${erro.message}", Toast.LENGTH_LONG).show()
             }
             .addOnCompleteListener {
                 publicandoComentario = false
@@ -401,18 +495,11 @@ class DetalhesEventoActivity : AppCompatActivity() {
                 }
             }
             .addOnFailureListener { erro ->
-                Toast.makeText(
-                    this,
-                    "Erro ao carregar comentários: ${erro.message}",
-                    Toast.LENGTH_LONG
-                ).show()
+                Toast.makeText(this, "Erro ao carregar comentários: ${erro.message}", Toast.LENGTH_LONG).show()
             }
     }
 
-    private fun adicionarComentario(
-        documento: DocumentSnapshot,
-        uid: String
-    ) {
+    private fun adicionarComentario(documento: DocumentSnapshot, uid: String) {
         val card = LinearLayout(this)
         card.orientation = LinearLayout.VERTICAL
         card.setPadding(18, 16, 18, 16)
@@ -433,8 +520,7 @@ class DetalhesEventoActivity : AppCompatActivity() {
 
         val data = TextView(this)
         val timestamp = documento.getTimestamp("dataPublicacao")
-        data.text = timestamp?.toDate()?.let { formatarData(it) }
-            ?: "Publicado agora"
+        data.text = timestamp?.toDate()?.let { formatarData(it) } ?: "Publicado agora"
         data.textSize = 12f
         data.setTextColor(Color.GRAY)
 
@@ -460,19 +546,11 @@ class DetalhesEventoActivity : AppCompatActivity() {
 
             botoes.addView(
                 btnEditar,
-                LinearLayout.LayoutParams(
-                    0,
-                    ViewGroup.LayoutParams.WRAP_CONTENT,
-                    1f
-                )
+                LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
             )
             botoes.addView(
                 btnExcluir,
-                LinearLayout.LayoutParams(
-                    0,
-                    ViewGroup.LayoutParams.WRAP_CONTENT,
-                    1f
-                )
+                LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
             )
 
             btnEditar.setOnClickListener {
@@ -489,11 +567,7 @@ class DetalhesEventoActivity : AppCompatActivity() {
         containerComentarios.addView(card)
     }
 
-    private fun editarComentario(
-        comentarioId: String,
-        textoAtual: String,
-        uid: String
-    ) {
+    private fun editarComentario(comentarioId: String, textoAtual: String, uid: String) {
         val campo = EditText(this)
         campo.setText(textoAtual)
         campo.setSelection(campo.text.length)
@@ -516,46 +590,27 @@ class DetalhesEventoActivity : AppCompatActivity() {
                     return@setOnClickListener
                 }
 
-                val referencia = db.collection("comentarios")
-                    .document(comentarioId)
+                val referencia = db.collection("comentarios").document(comentarioId)
 
                 referencia.get()
                     .addOnSuccessListener { documento ->
-                        if (documento.exists() &&
-                            documento.getString("usuarioId") == uid
-                        ) {
+                        if (documento.exists() && documento.getString("usuarioId") == uid) {
                             referencia.update("texto", novoTexto)
                                 .addOnSuccessListener {
                                     dialog.dismiss()
                                     carregarComentarios(uid)
-                                    Toast.makeText(
-                                        this,
-                                        "Comentário atualizado!",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
+                                    Toast.makeText(this, "Comentário atualizado!", Toast.LENGTH_SHORT).show()
                                 }
                                 .addOnFailureListener { erro ->
-                                    Toast.makeText(
-                                        this,
-                                        "Erro ao atualizar: ${erro.message}",
-                                        Toast.LENGTH_LONG
-                                    ).show()
+                                    Toast.makeText(this, "Erro ao atualizar: ${erro.message}", Toast.LENGTH_LONG).show()
                                 }
                         } else {
-                            Toast.makeText(
-                                this,
-                                "Você só pode editar seus comentários",
-                                Toast.LENGTH_SHORT
-                            ).show()
+                            Toast.makeText(this, "Você só pode editar seus comentários", Toast.LENGTH_SHORT).show()
                             dialog.dismiss()
                         }
                     }
                     .addOnFailureListener {
-                        Toast.makeText(
-                            this,
-                            "Erro ao verificar comentário",
-                            Toast.LENGTH_SHORT
-                        ).show()
+                        Toast.makeText(this, "Erro ao verificar comentário", Toast.LENGTH_SHORT).show()
                     }
             }
         }
@@ -569,44 +624,25 @@ class DetalhesEventoActivity : AppCompatActivity() {
             .setMessage("Deseja realmente excluir este comentário?")
             .setNegativeButton("Cancelar", null)
             .setPositiveButton("Excluir") { _, _ ->
-                val referencia = db.collection("comentarios")
-                    .document(comentarioId)
+                val referencia = db.collection("comentarios").document(comentarioId)
 
                 referencia.get()
                     .addOnSuccessListener { documento ->
-                        if (documento.exists() &&
-                            documento.getString("usuarioId") == uid
-                        ) {
+                        if (documento.exists() && documento.getString("usuarioId") == uid) {
                             referencia.delete()
                                 .addOnSuccessListener {
                                     carregarComentarios(uid)
-                                    Toast.makeText(
-                                        this,
-                                        "Comentário excluído!",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
+                                    Toast.makeText(this, "Comentário excluído!", Toast.LENGTH_SHORT).show()
                                 }
                                 .addOnFailureListener { erro ->
-                                    Toast.makeText(
-                                        this,
-                                        "Erro ao excluir: ${erro.message}",
-                                        Toast.LENGTH_LONG
-                                    ).show()
+                                    Toast.makeText(this, "Erro ao excluir: ${erro.message}", Toast.LENGTH_LONG).show()
                                 }
                         } else {
-                            Toast.makeText(
-                                this,
-                                "Você só pode excluir seus comentários",
-                                Toast.LENGTH_SHORT
-                            ).show()
+                            Toast.makeText(this, "Você só pode excluir seus comentários", Toast.LENGTH_SHORT).show()
                         }
                     }
                     .addOnFailureListener {
-                        Toast.makeText(
-                            this,
-                            "Erro ao verificar comentário",
-                            Toast.LENGTH_SHORT
-                        ).show()
+                        Toast.makeText(this, "Erro ao verificar comentário", Toast.LENGTH_SHORT).show()
                     }
             }
             .show()
