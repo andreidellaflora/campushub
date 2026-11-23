@@ -146,6 +146,17 @@
                 android:backgroundTint="#6A4BBC" />
 
             <Button
+                android:id="@+id/btnMeuQrCode"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="MEU QR CODE"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:backgroundTint="#6A4BBC"
+                android:visibility="gone" />
+
+            <Button
                 android:id="@+id/btnFavorito"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

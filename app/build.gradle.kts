@@ -39,11 +39,19 @@ dependencies {
     implementation(libs.androidx.constraintlayout)
     implementation(libs.androidx.core.ktx)
     implementation(libs.material)
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)
 
+    // Firebase
     implementation(platform("com.google.firebase:firebase-bom:34.19.0"))
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore")
+
+    // Gerar QR Code
+    implementation("com.google.zxing:core:3.5.3")
+
+    // Ler QR Code pela câmera
+    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
 }

@@ -33,6 +33,10 @@ import java.io.FileOutputStream
 import java.util.UUID
 import org.json.JSONArray
 import org.json.JSONObject
+import com.google.zxing.BarcodeFormat
+import com.google.zxing.MultiFormatWriter
+import com.google.zxing.EncodeHintType
+import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel
 
 class DetalhesEventoActivity : AppCompatActivity() {
 
@@ -82,6 +86,8 @@ class DetalhesEventoActivity : AppCompatActivity() {
     private var salvandoAvaliacao = false
     private var eventoEncerrado = false
     private var usuarioInscrito = false
+    private lateinit var btnInscrever: Button
+    private lateinit var btnMeuQrCode: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -96,7 +102,9 @@ class DetalhesEventoActivity : AppCompatActivity() {
         val txtLocal = findViewById<TextView>(R.id.txtLocalEvento)
         val txtDescricao = findViewById<TextView>(R.id.txtDescricaoEvento)
 
-        val btnInscrever = findViewById<Button>(R.id.btnInscrever)
+        btnInscrever = findViewById(R.id.btnInscrever)
+        btnMeuQrCode = findViewById(R.id.btnMeuQrCode)
+        btnMeuQrCode.visibility = android.view.View.GONE
         val btnFavorito = findViewById<Button>(R.id.btnFavorito)
         val btnVoltar = findViewById<Button>(R.id.btnVoltar)
         val btnVerMapa = findViewById<Button>(R.id.btnVerMapa)
@@ -166,12 +174,17 @@ class DetalhesEventoActivity : AppCompatActivity() {
             .document(inscricaoId)
             .get()
             .addOnSuccessListener { documento ->
-                usuarioInscrito = documento.exists()
+                val status = documento.getString("status")
+                    ?: if (documento.exists()) "CONFIRMADA" else ""
 
-                btnInscrever.text = if (usuarioInscrito) {
-                    "CANCELAR INSCRIÇÃO"
-                } else {
-                    "INSCREVER-SE"
+                usuarioInscrito = status == "CONFIRMADA"
+                btnMeuQrCode.visibility = if (usuarioInscrito) android.view.View.VISIBLE else android.view.View.GONE
+                if (usuarioInscrito) garantirTokenQr(inscricaoId)
+
+                btnInscrever.text = when (status) {
+                    "CONFIRMADA" -> "CANCELAR INSCRIÇÃO"
+                    "ESPERA" -> "CANCELAR LISTA DE ESPERA"
+                    else -> "INSCREVER-SE"
                 }
 
                 btnInscrever.isEnabled = true
@@ -201,78 +214,12 @@ class DetalhesEventoActivity : AppCompatActivity() {
         carregarMediaAvaliacoes()
 
         btnInscrever.setOnClickListener {
-            if (processandoInscricao) return@setOnClickListener
+            processarInscricao(uid, inscricaoId, avaliacaoId)
+        }
 
-            processandoInscricao = true
-            btnInscrever.isEnabled = false
-
-            val referencia = db.collection("inscricoes").document(inscricaoId)
-
-            referencia.get()
-                .addOnSuccessListener { documento ->
-                    if (documento.exists()) {
-                        referencia.delete()
-                            .addOnSuccessListener {
-                                usuarioInscrito = false
-                                btnInscrever.text = "INSCREVER-SE"
-                                atualizarPermissaoAvaliacao(uid, avaliacaoId)
-                                Toast.makeText(
-                                    this,
-                                    "Inscrição cancelada!",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                            }
-                            .addOnFailureListener {
-                                Toast.makeText(
-                                    this,
-                                    "Erro ao cancelar inscrição",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                            }
-                            .addOnCompleteListener {
-                                processandoInscricao = false
-                                btnInscrever.isEnabled = true
-                            }
-                    } else {
-                        val dados = hashMapOf(
-                            "usuarioId" to uid,
-                            "eventoId" to eventoId,
-                            "dataInscricao" to FieldValue.serverTimestamp()
-                        )
-
-                        referencia.set(dados)
-                            .addOnSuccessListener {
-                                usuarioInscrito = true
-                                btnInscrever.text = "CANCELAR INSCRIÇÃO"
-                                atualizarPermissaoAvaliacao(uid, avaliacaoId)
-                                Toast.makeText(
-                                    this,
-                                    "Inscrição realizada!",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                            }
-                            .addOnFailureListener {
-                                Toast.makeText(
-                                    this,
-                                    "Erro ao realizar inscrição",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                            }
-                            .addOnCompleteListener {
-                                processandoInscricao = false
-                                btnInscrever.isEnabled = true
-                            }
-                    }
-                }
-                .addOnFailureListener {
-                    processandoInscricao = false
-                    btnInscrever.isEnabled = true
-                    Toast.makeText(
-                        this,
-                        "Erro ao verificar inscrição",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
+        btnMeuQrCode.setOnClickListener {
+            if (usuarioInscrito) mostrarMeuQrCode(inscricaoId)
+            else toast("Seu QR Code fica disponível após a confirmação da inscrição.")
         }
 
         btnFavorito.setOnClickListener {
@@ -387,6 +334,241 @@ class DetalhesEventoActivity : AppCompatActivity() {
         findViewById<Button>(R.id.btnEscolherVideo).setOnClickListener { selecionarVideoLauncher.launch("video/*") }
         carregarMidiasLocais()
         carregarComentarios(uid)
+    }
+
+    private fun processarInscricao(
+        uid: String,
+        inscricaoId: String,
+        avaliacaoId: String
+    ) {
+        if (processandoInscricao) return
+
+        processandoInscricao = true
+        btnInscrever.isEnabled = false
+
+        val eventoRef = db.collection("eventos").document(eventoId)
+        val inscricaoRef = db.collection("inscricoes").document(inscricaoId)
+        val novoTokenQr = UUID.randomUUID().toString()
+        val tokenPromovido = UUID.randomUUID().toString()
+
+        // Primeiro verifica se o aluno já está inscrito.
+        inscricaoRef.get()
+            .addOnSuccessListener { inscricaoAtual ->
+                val statusAtual = inscricaoAtual.getString("status")
+                    ?: if (inscricaoAtual.exists()) "CONFIRMADA" else ""
+
+                // Só consulta a lista de espera ao cancelar uma inscrição confirmada.
+                fun executarTransacao(proximoRef: com.google.firebase.firestore.DocumentReference?) {
+                    db.runTransaction { transacao ->
+                        val evento = transacao.get(eventoRef)
+                        val inscricao = transacao.get(inscricaoRef)
+                        val proximo = proximoRef?.let { transacao.get(it) }
+
+                        if (!evento.exists()) {
+                            throw Exception("Evento não encontrado.")
+                        }
+
+                        if (!inscricao.exists()) {
+                            val capacidade = evento.getLong("capacidade") ?: 0L
+                            val ocupadas = evento.getLong("vagasOcupadas") ?: 0L
+                            val temVaga = capacidade <= 0L || ocupadas < capacidade
+
+                            if (temVaga) {
+                                transacao.set(
+                                    inscricaoRef,
+                                    hashMapOf(
+                                        "usuarioId" to uid,
+                                        "eventoId" to eventoId,
+                                        "status" to "CONFIRMADA",
+                                        "qrToken" to novoTokenQr,
+                                        "dataInscricao" to FieldValue.serverTimestamp()
+                                    )
+                                )
+
+                                if (capacidade > 0L) {
+                                    transacao.update(eventoRef, "vagasOcupadas", ocupadas + 1L)
+                                }
+                                "CONFIRMADA"
+                            } else {
+                                val ordem = (evento.getLong("proximaOrdemEspera") ?: 0L) + 1L
+                                transacao.set(
+                                    inscricaoRef,
+                                    hashMapOf(
+                                        "usuarioId" to uid,
+                                        "eventoId" to eventoId,
+                                        "status" to "ESPERA",
+                                        "ordemEspera" to ordem,
+                                        "dataInscricao" to FieldValue.serverTimestamp()
+                                    )
+                                )
+                                transacao.update(eventoRef, "proximaOrdemEspera", ordem)
+                                "ESPERA"
+                            }
+                        } else {
+                            val status = inscricao.getString("status") ?: "CONFIRMADA"
+                            val ocupadas = evento.getLong("vagasOcupadas") ?: 0L
+
+                            if (status == "CONFIRMADA") {
+                                transacao.delete(inscricaoRef)
+
+                                if (proximo != null && proximo.exists() &&
+                                    proximo.getString("status") == "ESPERA") {
+                                    transacao.update(
+                                        proximoRef!!,
+                                        mapOf(
+                                            "status" to "CONFIRMADA",
+                                            "qrToken" to tokenPromovido,
+                                            "dataConfirmacao" to FieldValue.serverTimestamp()
+                                        )
+                                    )
+                                } else if (ocupadas > 0L) {
+                                    transacao.update(eventoRef, "vagasOcupadas", ocupadas - 1L)
+                                }
+                                "CANCELADA"
+                            } else {
+                                transacao.delete(inscricaoRef)
+                                "SAIU_ESPERA"
+                            }
+                        }
+                    }.addOnSuccessListener { resultado ->
+                        usuarioInscrito = resultado == "CONFIRMADA"
+                        btnMeuQrCode.visibility = if (usuarioInscrito) android.view.View.VISIBLE else android.view.View.GONE
+                        if (usuarioInscrito) garantirTokenQr(inscricaoId)
+                        btnInscrever.text = when (resultado) {
+                            "CONFIRMADA" -> "CANCELAR INSCRIÇÃO"
+                            "ESPERA" -> "CANCELAR LISTA DE ESPERA"
+                            else -> "INSCREVER-SE"
+                        }
+
+                        val mensagem = when (resultado) {
+                            "CONFIRMADA" -> "Inscrição confirmada!"
+                            "ESPERA" -> "Evento lotado! Você entrou na lista de espera."
+                            "CANCELADA" -> "Inscrição cancelada. Lista de espera atualizada."
+                            "SAIU_ESPERA" -> "Você saiu da lista de espera."
+                            else -> "Operação concluída."
+                        }
+                        Toast.makeText(this, mensagem, Toast.LENGTH_LONG).show()
+                        atualizarPermissaoAvaliacao(uid, avaliacaoId)
+                    }.addOnFailureListener { erro ->
+                        Toast.makeText(
+                            this,
+                            "Erro na inscrição: ${erro.message}",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }.addOnCompleteListener {
+                        processandoInscricao = false
+                        btnInscrever.isEnabled = true
+                    }
+                }
+
+                if (inscricaoAtual.exists() && statusAtual == "CONFIRMADA") {
+                    db.collection("inscricoes")
+                        .whereEqualTo("eventoId", eventoId)
+                        .whereEqualTo("status", "ESPERA")
+                        .orderBy("ordemEspera")
+                        .limit(1)
+                        .get()
+                        .addOnSuccessListener { esperaSnapshot ->
+                            val proximoRef = esperaSnapshot.documents.firstOrNull()?.reference
+                            executarTransacao(proximoRef)
+                        }
+                        .addOnFailureListener { erro ->
+                            processandoInscricao = false
+                            btnInscrever.isEnabled = true
+                            Toast.makeText(
+                                this,
+                                "Erro ao consultar lista de espera: ${erro.message}",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
+                } else {
+                    executarTransacao(null)
+                }
+            }
+            .addOnFailureListener { erro ->
+                processandoInscricao = false
+                btnInscrever.isEnabled = true
+                Toast.makeText(
+                    this,
+                    "Erro ao verificar inscrição: ${erro.message}",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+    }
+
+    private fun garantirTokenQr(inscricaoId: String) {
+        val referencia = db.collection("inscricoes").document(inscricaoId)
+        referencia.get().addOnSuccessListener { documento ->
+            if (!documento.exists() || documento.getString("status").let { it != null && it != "CONFIRMADA" }) {
+                btnMeuQrCode.visibility = android.view.View.GONE
+                return@addOnSuccessListener
+            }
+            if (documento.getString("qrToken").isNullOrBlank()) {
+                referencia.update("qrToken", UUID.randomUUID().toString())
+                    .addOnFailureListener { toast("Não foi possível preparar seu QR Code.") }
+            }
+        }
+    }
+
+    private fun mostrarMeuQrCode(inscricaoId: String) {
+        if (!usuarioInscrito) {
+            toast("Somente inscrições confirmadas possuem QR Code.")
+            return
+        }
+        btnMeuQrCode.isEnabled = false
+        db.collection("inscricoes").document(inscricaoId).get()
+            .addOnSuccessListener { documento ->
+                val status = documento.getString("status") ?: if (documento.exists()) "CONFIRMADA" else ""
+                if (!documento.exists() || status != "CONFIRMADA") {
+                    usuarioInscrito = false
+                    btnMeuQrCode.visibility = android.view.View.GONE
+                    toast("Sua inscrição não está confirmada.")
+                    return@addOnSuccessListener
+                }
+                var token = documento.getString("qrToken")
+                if (token.isNullOrBlank()) {
+                    token = UUID.randomUUID().toString()
+                    val tokenNovo = token
+                    documento.reference.update("qrToken", tokenNovo)
+                        .addOnSuccessListener { exibirImagemQr(tokenNovo) }
+                        .addOnFailureListener { toast("Erro ao gerar QR Code. Tente novamente.") }
+                } else {
+                    exibirImagemQr(token)
+                }
+            }
+            .addOnFailureListener { toast("Erro ao carregar seu QR Code.") }
+            .addOnCompleteListener { btnMeuQrCode.isEnabled = true }
+    }
+
+    private fun exibirImagemQr(token: String) {
+        try {
+            // O conteúdo contém somente um token aleatório; não expõe e-mail ou UID.
+            val conteudo = "CAMPUSHUB|$eventoId|$token"
+            val hints = mapOf(
+                EncodeHintType.ERROR_CORRECTION to ErrorCorrectionLevel.M,
+                EncodeHintType.MARGIN to 2
+            )
+            val matriz = MultiFormatWriter().encode(conteudo, BarcodeFormat.QR_CODE, 800, 800, hints)
+            val bitmap = Bitmap.createBitmap(800, 800, Bitmap.Config.ARGB_8888)
+            for (x in 0 until 800) {
+                for (y in 0 until 800) {
+                    bitmap.setPixel(x, y, if (matriz.get(x, y)) Color.BLACK else Color.WHITE)
+                }
+            }
+            val imagem = ImageView(this).apply {
+                setImageBitmap(bitmap)
+                adjustViewBounds = true
+                setPadding(24, 24, 24, 24)
+            }
+            AlertDialog.Builder(this)
+                .setTitle("Meu QR Code - CampusHub")
+                .setMessage("Apresente este código ao organizador para confirmar sua presença.")
+                .setView(imagem)
+                .setPositiveButton("FECHAR", null)
+                .show()
+        } catch (erro: Exception) {
+            toast("Não foi possível gerar o QR Code: ${erro.message}")
+        }
     }
 
     // Mídias armazenadas localmente na pasta privada do aplicativo.
