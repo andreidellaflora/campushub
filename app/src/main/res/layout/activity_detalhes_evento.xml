@@ -106,7 +106,17 @@
                 android:textColor="#222222"
                 android:textSize="18sp"
                 android:layout_marginTop="4dp"
-                android:layout_marginBottom="18dp" />
+                android:layout_marginBottom="8dp" />
+
+            <Button
+                android:id="@+id/btnVerMapa"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="18dp"
+                android:text="VER LOCALIZAÇÃO NO MAPA"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:backgroundTint="#6A4BBC" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -144,6 +154,94 @@
                 android:textColor="#FFFFFF"
                 android:textStyle="bold"
                 android:backgroundTint="#8E6CC9" />
+
+            <!-- PUBLICAÇÕES DE MÍDIA DO EVENTO -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="30dp"
+                android:text="Fotos do evento"
+                android:textColor="#222222"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+            <Button
+                android:id="@+id/btnTirarFoto"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="TIRAR FOTO"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="#6A4BBC" />
+            <Button
+                android:id="@+id/btnEscolherFoto"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="ESCOLHER FOTO DA GALERIA"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="#8E6CC9" />
+            <LinearLayout
+                android:id="@+id/fotosContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginTop="12dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:text="Áudios do evento"
+                android:textColor="#222222"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+            <Button
+                android:id="@+id/btnGravarAudio"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="GRAVAR ÁUDIO"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="#6A4BBC" />
+            <Button
+                android:id="@+id/btnEscolherAudio"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="ESCOLHER ÁUDIO"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="#8E6CC9" />
+            <LinearLayout
+                android:id="@+id/audiosContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginTop="12dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:text="Vídeos do evento"
+                android:textColor="#222222"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+            <Button
+                android:id="@+id/btnGravarVideo"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="GRAVAR VÍDEO (ATÉ 30 SEGUNDOS)"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="#6A4BBC" />
+            <Button
+                android:id="@+id/btnEscolherVideo"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="ESCOLHER VÍDEO"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="#8E6CC9" />
+            <LinearLayout
+                android:id="@+id/videosContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginTop="12dp" />
 
             <TextView
                 android:layout_width="match_parent"

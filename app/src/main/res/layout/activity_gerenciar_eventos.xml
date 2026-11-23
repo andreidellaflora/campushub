@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#F5F3FA"
+    android:padding="20dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="GERENCIAR EVENTOS"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:textColor="#5E35B1"
+        android:gravity="center"
+        android:padding="12dp" />
+
+    <Button
+        android:id="@+id/btnNovoEvento"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="＋ NOVO EVENTO"
+        android:textColor="#FFFFFF"
+        android:backgroundTint="#6A4BBC"
+        android:layout_marginTop="12dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="MEUS EVENTOS CADASTRADOS"
+        android:textStyle="bold"
+        android:textSize="16sp"
+        android:textColor="#333333"
+        android:layout_marginTop="24dp"
+        android:layout_marginBottom="12dp" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <LinearLayout
+            android:id="@+id/eventosContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+
+    </ScrollView>
+
+    <Button
+        android:id="@+id/btnVoltar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="VOLTAR"
+        android:layout_marginTop="12dp" />
+
+</LinearLayout>

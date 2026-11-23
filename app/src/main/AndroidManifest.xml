@@ -45,6 +45,12 @@
             android:name=".MeusFavoritosActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".GerenciarEventosActivity"
+            android:exported="false" />
+        <activity
+            android:name=".FormEventoActivity"
+            android:exported="false" />
     </application>
 
 </manifest>

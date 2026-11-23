@@ -4,6 +4,7 @@ package br.com.example.loginfirebase
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
+import android.view.View
 import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
@@ -30,6 +31,7 @@ class HomeActivity : AppCompatActivity() {
     private lateinit var edtPesquisar: EditText
     private lateinit var spCategoria: Spinner
     private lateinit var spSituacao: Spinner
+    private lateinit var btnGerenciarEventos: Button
 
     private val listaEventos = mutableListOf<Evento>()
 
@@ -59,6 +61,9 @@ class HomeActivity : AppCompatActivity() {
         val btnMeusFavoritos = findViewById<Button>(R.id.btnMeusFavoritos)
         val btnSair = findViewById<Button>(R.id.btnSair)
 
+        btnGerenciarEventos = findViewById(R.id.btnGerenciarEventos)
+        btnGerenciarEventos.visibility = View.GONE
+
         btnPerfil.setOnClickListener {
             startActivity(Intent(this, PerfilActivity::class.java))
         }
@@ -69,6 +74,12 @@ class HomeActivity : AppCompatActivity() {
 
         btnMeusFavoritos.setOnClickListener {
             startActivity(Intent(this, MeusFavoritosActivity::class.java))
+        }
+
+        btnGerenciarEventos.setOnClickListener {
+            startActivity(
+                Intent(this, GerenciarEventosActivity::class.java)
+            )
         }
 
         btnSair.setOnClickListener {
@@ -84,10 +95,46 @@ class HomeActivity : AppCompatActivity() {
         }
 
         configurarFiltros()
+        verificarPermissaoOrganizador()
         carregarEventos()
     }
 
+    private fun verificarPermissaoOrganizador() {
+        val usuario = auth.currentUser
+
+        if (usuario == null) {
+            btnGerenciarEventos.visibility = View.GONE
+            return
+        }
+
+        db.collection("usuarios")
+            .document(usuario.uid)
+            .get()
+            .addOnSuccessListener { documento ->
+
+                val tipoUsuario =
+                    documento.getString("tipoUsuario")
+
+                btnGerenciarEventos.visibility =
+                    if (tipoUsuario == "ORGANIZADOR") {
+                        View.VISIBLE
+                    } else {
+                        View.GONE
+                    }
+            }
+            .addOnFailureListener {
+                btnGerenciarEventos.visibility = View.GONE
+
+                Toast.makeText(
+                    this,
+                    "Não foi possível verificar suas permissões.",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+    }
+
     private fun configurarFiltros() {
+
         val situacoes = listOf(
             "Todas as situações",
             "Próximos",
@@ -111,7 +158,7 @@ class HomeActivity : AppCompatActivity() {
 
                 override fun onItemSelected(
                     parent: AdapterView<*>?,
-                    view: android.view.View?,
+                    view: View?,
                     position: Int,
                     id: Long
                 ) {
@@ -126,7 +173,7 @@ class HomeActivity : AppCompatActivity() {
 
                 override fun onItemSelected(
                     parent: AdapterView<*>?,
-                    view: android.view.View?,
+                    view: View?,
                     position: Int,
                     id: Long
                 ) {
@@ -159,6 +206,9 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun carregarEventos() {
+
+        eventosContainer.removeAllViews()
+
         db.collection("eventos")
             .get()
             .addOnSuccessListener { documentos ->
@@ -166,6 +216,7 @@ class HomeActivity : AppCompatActivity() {
                 listaEventos.clear()
 
                 for (documento in documentos) {
+
                     val evento = Evento(
                         id = documento.id,
                         titulo = documento.getString("titulo") ?: "Evento",
@@ -180,19 +231,40 @@ class HomeActivity : AppCompatActivity() {
                     listaEventos.add(evento)
                 }
 
+                android.util.Log.d(
+                    "CampusHub",
+                    "Eventos encontrados: ${documentos.size()}"
+                )
+
                 carregarCategorias()
                 aplicarFiltros()
+
+                if (documentos.isEmpty) {
+                    Toast.makeText(
+                        this,
+                        "A coleção eventos está vazia.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
             }
-            .addOnFailureListener {
+            .addOnFailureListener { erro ->
+
+                android.util.Log.e(
+                    "CampusHub",
+                    "Erro ao carregar eventos",
+                    erro
+                )
+
                 Toast.makeText(
                     this,
-                    "Erro ao carregar eventos",
-                    Toast.LENGTH_SHORT
+                    "Erro Firebase: ${erro.message}",
+                    Toast.LENGTH_LONG
                 ).show()
             }
     }
 
     private fun carregarCategorias() {
+
         val categorias = mutableListOf("Todas as categorias")
 
         categorias.addAll(
@@ -216,16 +288,19 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun aplicarFiltros() {
+
         if (!::eventosContainer.isInitialized) return
 
         val pesquisa = edtPesquisar.text.toString().trim()
             .lowercase(Locale.ROOT)
 
         val categoriaSelecionada =
-            spCategoria.selectedItem?.toString() ?: "Todas as categorias"
+            spCategoria.selectedItem?.toString()
+                ?: "Todas as categorias"
 
         val situacaoSelecionada =
-            spSituacao.selectedItem?.toString() ?: "Todas as situações"
+            spSituacao.selectedItem?.toString()
+                ?: "Todas as situações"
 
         val eventosFiltrados = listaEventos.filter { evento ->
 
@@ -236,7 +311,10 @@ class HomeActivity : AppCompatActivity() {
                 categoriaSelecionada == "Todas as categorias" ||
                         evento.categoria == categoriaSelecionada
 
-            val encerrado = eventoEncerrado(evento.data, evento.horario)
+            val encerrado = eventoEncerrado(
+                evento.data,
+                evento.horario
+            )
 
             val correspondeSituacao = when (situacaoSelecionada) {
                 "Próximos" -> !encerrado
@@ -252,8 +330,13 @@ class HomeActivity : AppCompatActivity() {
         mostrarEventos(eventosFiltrados)
     }
 
-    private fun eventoEncerrado(data: String, horario: String): Boolean {
+    private fun eventoEncerrado(
+        data: String,
+        horario: String
+    ): Boolean {
+
         return try {
+
             val formato = SimpleDateFormat(
                 "dd/MM/yyyy HH:mm",
                 Locale("pt", "BR")
@@ -265,15 +348,18 @@ class HomeActivity : AppCompatActivity() {
                 ?: return false
 
             dataEvento.before(Date())
+
         } catch (e: Exception) {
             false
         }
     }
 
     private fun mostrarEventos(eventos: List<Evento>) {
+
         eventosContainer.removeAllViews()
 
         if (eventos.isEmpty()) {
+
             val mensagem = TextView(this)
             mensagem.text = "Nenhum evento encontrado."
             mensagem.textSize = 16f
@@ -285,6 +371,7 @@ class HomeActivity : AppCompatActivity() {
         }
 
         for (evento in eventos) {
+
             val card = LinearLayout(this)
             card.orientation = LinearLayout.VERTICAL
             card.setPadding(20, 20, 20, 20)
@@ -319,11 +406,14 @@ class HomeActivity : AppCompatActivity() {
             txtCategoria.setTextColor(Color.GRAY)
 
             val txtSituacao = TextView(this)
-            txtSituacao.text = if (eventoEncerrado(evento.data, evento.horario)) {
-                "Evento encerrado"
-            } else {
-                "Próximo evento"
-            }
+
+            txtSituacao.text =
+                if (eventoEncerrado(evento.data, evento.horario)) {
+                    "Evento encerrado"
+                } else {
+                    "Próximo evento"
+                }
+
             txtSituacao.textSize = 13f
             txtSituacao.setTextColor(Color.rgb(94, 53, 177))
 
@@ -341,6 +431,7 @@ class HomeActivity : AppCompatActivity() {
             btnDetalhes.layoutParams = margemBotao
 
             btnDetalhes.setOnClickListener {
+
                 val intent = Intent(
                     this,
                     DetalhesEventoActivity::class.java
@@ -364,7 +455,8 @@ class HomeActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
 
-        if (::db.isInitialized && listaEventos.isNotEmpty()) {
+        if (::db.isInitialized) {
+            verificarPermissaoOrganizador()
             carregarEventos()
         }
     }
